@@ -110,12 +110,19 @@ export function callNodeListener(
       }
       return err ? reject(createError(err)) : resolve(undefined);
     };
+    if (isMiddleware) {
+      res.once("close", next);
+      res.once("error", next);
+    }
     try {
       const returned = handler(req, res, next);
       if (isMiddleware && returned === undefined) {
-        res.once("close", next);
-        res.once("error", next);
+        // Returned undefined; waiting for next() or response close/error
       } else {
+        if (isMiddleware) {
+          res.off("close", next);
+          res.off("error", next);
+        }
         resolve(returned);
       }
     } catch (error) {
